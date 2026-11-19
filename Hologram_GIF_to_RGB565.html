@@ -61,6 +61,7 @@ button{border:0;border-radius:10px;font-weight:750;font:inherit;cursor:pointer;p
       <div class="controls">
         <div class="control"><label for="fit">Fit to display</label><select id="fit"><option value="contain">Contain (black borders)</option><option value="cover">Cover (crop to fill)</option><option value="stretch">Stretch to fill</option></select></div>
         <div class="control"><label for="rotate">Rotate image</label><select id="rotate"><option value="0">0° · Normal</option><option value="90">90° clockwise</option><option value="180">180°</option><option value="270">270° clockwise</option></select></div>
+        <div class="control full"><label for="zoom">Image zoom · <output id="zoomNum">100%</output></label><input id="zoom" type="range" min="25" max="300" value="100" step="5"><div class="helper">Changes the exported video, not just the preview. Below 100% makes the subject smaller with black space; above 100% zooms in and crops edges.</div></div>
         <div class="control"><label for="speed">Animation speed</label><select id="speed"><option value="0.5">0.5× · Slow motion</option><option value="1" selected>1× · Original speed</option><option value="1.5">1.5× · Faster</option><option value="2">2× · Double speed</option></select><div class="helper">Frames sampled at the player's fixed 10 FPS.</div></div>
         <div class="control"><label for="threshold">Black level · <output id="thresholdNum">0</output></label><input id="threshold" type="range" min="0" max="75" value="0" step="5"><div class="helper">Remove faint background glow.</div></div>
         <div class="control full"><label>Flip axes</label><div class="toggles"><label class="check"><input type="checkbox" id="flipH"> Mirror horizontally</label><label class="check"><input type="checkbox" id="flipV"> Flip vertically</label></div><div class="helper">Useful if your Pepper's Ghost reflection reverses the image.</div></div>
@@ -83,7 +84,7 @@ button{border:0;border-radius:10px;font-weight:750;font:inherit;cursor:pointer;p
 let W=320,H=240,FRAME_BYTES=W*H*2;
 const FPS=10,MAX_BYTES=220*1024*1024,MAX_SOURCE_PIXELS=8_000_000;
 const $=id=>document.getElementById(id);
-const ui={drop:$('drop'),file:$('file'),src:$('srcMeta'),dur:$('durMeta'),fit:$('fit'),rotate:$('rotate'),speed:$('speed'),threshold:$('threshold'),thresholdNum:$('thresholdNum'),flipH:$('flipH'),flipV:$('flipV'),convert:$('convert'),download:$('download'),downloadRGB:$('downloadRGB'),play:$('play'),status:$('status'),progress:$('progress'),preview:$('preview'),frameText:$('frameText'),sizeText:$('sizeText'),resolution:$('resolution'),customSize:$('customSize'),customW:$('customW'),customH:$('customH'),outMeta:$('outMeta'),frameBytes:$('frameBytes'),previewLabel:$('previewLabel')};
+const ui={drop:$('drop'),file:$('file'),src:$('srcMeta'),dur:$('durMeta'),fit:$('fit'),rotate:$('rotate'),zoom:$('zoom'),zoomNum:$('zoomNum'),speed:$('speed'),threshold:$('threshold'),thresholdNum:$('thresholdNum'),flipH:$('flipH'),flipV:$('flipV'),convert:$('convert'),download:$('download'),downloadRGB:$('downloadRGB'),play:$('play'),status:$('status'),progress:$('progress'),preview:$('preview'),frameText:$('frameText'),sizeText:$('sizeText'),resolution:$('resolution'),customSize:$('customSize'),customW:$('customW'),customH:$('customH'),outMeta:$('outMeta'),frameBytes:$('frameBytes'),previewLabel:$('previewLabel')};
 const previewCtx=ui.preview.getContext('2d',{willReadFrequently:true});
 let gif=null,filename='hologram',output=null,outputCount=0,playing=false,playStart=0,playOffset=0,lastPreview=-1,decoding=false;
 function setStatus(msg,isError=false){ui.status.textContent=msg;ui.status.classList.toggle('error',isError)}
@@ -176,13 +177,13 @@ function renderScaled(data,g,srcCanvas,srcCtx,targetCanvas,targetCtx,settings){
   let turned=settings.rotate%180!==0,rw=turned?sh:sw,rh=turned?sw:sh;
   let sx,sy;
   if(settings.fit==='stretch'){sx=W/rw;sy=H/rh}else{let s=settings.fit==='cover'?Math.max(W/rw,H/rh):Math.min(W/rw,H/rh);sx=sy=s;}
-  targetCtx.translate(W/2,H/2);targetCtx.scale((settings.flipH?-1:1)*sx,(settings.flipV?-1:1)*sy);targetCtx.rotate(angle);
+  targetCtx.translate(W/2,H/2);targetCtx.scale((settings.flipH?-1:1)*sx*settings.zoom,(settings.flipV?-1:1)*sy*settings.zoom);targetCtx.rotate(angle);
   targetCtx.imageSmoothingEnabled=true;targetCtx.imageSmoothingQuality='high';
   targetCtx.drawImage(srcCanvas,-sw/2,-sh/2);
   targetCtx.setTransform(1,0,0,1,0,0);
   return targetCtx.getImageData(0,0,W,H).data;
 }
-function options(){return {fit:ui.fit.value,rotate:Number(ui.rotate.value),speed:Number(ui.speed.value),threshold:Number(ui.threshold.value),flipH:ui.flipH.checked,flipV:ui.flipV.checked};}
+function options(){return {fit:ui.fit.value,rotate:Number(ui.rotate.value),zoom:Number(ui.zoom.value)/100,speed:Number(ui.speed.value),threshold:Number(ui.threshold.value),flipH:ui.flipH.checked,flipV:ui.flipV.checked};}
 function firstFramePreview(){
   if(!gif)return;
   const g=gif, compositor=makeCompositor(g),pixels=compositor.next(0);
@@ -288,6 +289,7 @@ for(let key of ['fit','rotate','speed','threshold','flipH','flipV']){ui[key].add
 ui.resolution.addEventListener('change',updateResolution);
 for(const key of ['customW','customH'])ui[key].addEventListener('input',updateResolution);
 ui.threshold.addEventListener('input',()=>ui.thresholdNum.textContent=ui.threshold.value);
+ui.zoom.addEventListener('input',()=>{ui.zoomNum.textContent=ui.zoom.value+'%';invalidate();if(gif&&!decoding){try{firstFramePreview()}catch(e){setStatus('Preview failed: '+e.message,true)}}});
 updateResolution();requestAnimationFrame(animate);
 </script>
 </body>
