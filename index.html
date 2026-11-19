@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Hologram GIF → RGB565 | CYD Video Converter</title>
+<style>
+:root{--bg:#080d14;--panel:#111b29;--panel2:#172436;--line:#293a4d;--txt:#eef8ff;--muted:#9db4ca;--teal:#32e4da;--teal2:#145a62;--bad:#ff9a83}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#10283b 0%,var(--bg) 55%);color:var(--txt);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+.shell{max-width:1100px;padding:32px 18px 80px;margin:auto}
+.kicker{text-transform:uppercase;letter-spacing:.19em;color:var(--teal);font-size:11px;font-weight:750}
+h1{font-size:clamp(25px,4vw,40px);letter-spacing:-.04em;margin:5px 0 4px;line-height:1.13}p{color:var(--muted);margin:6px 0 20px}.muted{color:var(--muted)}
+.pill{border:1px solid #276e71;border-radius:50px;padding:5px 11px;background:#102f38;color:#b7f9ed;font-size:11px;font-weight:700;white-space:nowrap}
+.header{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:26px}
+.layout{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:17px}.card{border:1px solid var(--line);border-radius:19px;background:linear-gradient(150deg,#152336,#0e1927);padding:20px;box-shadow:0 15px 40px #0002}.card h2{margin:0 0 16px;font-size:17px;letter-spacing:-.01em}
+#drop{position:relative;border:1.5px dashed #437185;border-radius:14px;background:#102432;min-height:168px;text-align:center;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s,border-color .2s;outline-offset:2px}
+#drop:hover,#drop.drag{background:#193d49;border-color:var(--teal)}#drop:focus-visible{outline:2px solid var(--teal)}#drop svg{color:var(--teal);display:block;margin:0 auto 5px}
+#drop strong{display:block;font-size:16px}#drop span{color:var(--muted);font-size:12px}#file{display:none}
+.meta{margin:15px 0 5px;display:grid;grid-template-columns:1fr 1fr;gap:11px}.meta > div{border:1px solid #293b4a;background:#0d1b2b;border-radius:10px;padding:10px}.meta small{display:block;color:var(--muted);font-size:11px}.meta b{font-variant-numeric:tabular-nums;font-size:14px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:14px}.control{display:flex;flex-direction:column;gap:5px}.control.full{grid-column:1/-1}.control label{font-weight:650;font-size:12px;color:#d7e8f4}.control input:not([type=checkbox]),.control select{border:1px solid #38516a;border-radius:8px;background:#0b1624;color:var(--txt);padding:10px;min-height:40px;font:inherit;width:100%}
+.control select{cursor:pointer}[hidden]{display:none!important}.helper{font-size:11px;color:var(--muted)}.toggles{display:flex;gap:14px;flex-wrap:wrap}.check{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}.check input{accent-color:var(--teal);width:16px;height:16px}
+.previewwrap{display:flex;align-items:center;justify-content:center;min-height:275px;background:#020407;border:1px solid #375568;border-radius:12px;overflow:hidden;position:relative;padding:15px}.previewwrap:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0,transparent 3px,#79c8e106 4px);pointer-events:none}
+#preview{width:auto;height:auto;max-width:100%;max-height:390px;object-fit:contain;background:#000;image-rendering:auto;box-shadow:0 0 28px #0cf3f116;display:block}
+.previewLabel{font-size:10px;letter-spacing:.12em;color:#9ceff0;background:#06141dc8;border:1px solid #2f7077;border-radius:5px;position:absolute;top:23px;left:23px;padding:5px 8px}
+.barline{display:flex;align-items:center;justify-content:space-between;margin:12px 0 15px;gap:10px;font-size:12px;color:var(--muted)}
+button{border:0;border-radius:10px;font-weight:750;font:inherit;cursor:pointer;padding:12px 16px;transition:filter .15s}button:hover:not(:disabled){filter:brightness(1.12)}button:disabled{opacity:.42;cursor:not-allowed}
+.primary{background:linear-gradient(110deg,#2ce1d7,#7cf6df);color:#042c34;font-weight:800}.secondary{background:#173344;color:#c8fffa;border:1px solid #347985}.actions{display:flex;gap:9px;flex-wrap:wrap}.actions button{flex:1;min-width:135px}
+#status{min-height:36px;margin:13px 0 8px;font-size:12px;color:var(--muted)}#status.error{color:var(--bad)}progress{width:100%;height:7px;accent-color:var(--teal);background:#293341;border:0;overflow:hidden;border-radius:9px}progress::-webkit-progress-bar{background:#293341}progress::-webkit-progress-value{background:var(--teal)}
+.note{font-size:12px;line-height:1.6;color:var(--muted);border-top:1px solid var(--line);padding-top:13px;margin-top:18px}.note b{color:#c6edfa}.foot{margin-top:20px;color:#69879a;font-size:12px;text-align:center}
+@media(max-width:770px){.layout{grid-template-columns:1fr}.shell{padding-top:20px}.card{padding:17px}.previewwrap{min-height:190px}.header{margin-bottom:16px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="header"><div><div class="kicker">ESP32 · Hologram workshop</div><h1>GIF <span style="color:var(--teal)">→</span> RGB565</h1><p>Convert animated GIFs into raw RGB565 little-endian video for 2.8″, 3.2″ and 3.5″ CYD displays.</p></div><span class="pill">100% OFFLINE · NO UPLOADS</span></div>
+  <div class="layout">
+    <section class="card">
+      <h2>01 / Choose your animation</h2>
+      <div id="drop" tabindex="0" role="button" aria-label="Choose a GIF file">
+        <div><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 17V3m0 0-5 5m5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><strong>Drop a GIF here</strong><span>or click to browse · GIF / GIF89a</span></div>
+      </div><input type="file" id="file" accept="image/gif,.gif">
+      <div class="meta"><div><small>Source</small><b id="srcMeta">No GIF selected</b></div><div><small>Source duration</small><b id="durMeta">—</b></div><div><small>Output format</small><b id="outMeta">320 × 240 RGB565 LE</b></div><div><small>Player frame rate</small><b>10 FPS</b></div></div>
+      <h2 style="margin-top:22px">02 / Target display</h2>
+      <div class="controls">
+        <div class="control full"><label for="resolution">Screen size and orientation</label>
+          <select id="resolution">
+            <option value="320x240">2.8″ / 3.2″ CYD — 320 × 240 landscape (original)</option>
+            <option value="240x320">2.8″ / 3.2″ CYD — 240 × 320 portrait</option>
+            <option value="480x320">3.5″ CYD — 480 × 320 landscape</option>
+            <option value="320x480">3.5″ CYD — 320 × 480 portrait</option>
+            <option value="custom">Custom dimensions…</option>
+          </select><div class="helper">Choose the exact frame size expected by your ESP32 firmware.</div>
+        </div>
+      </div>
+      <div id="customSize" class="controls" hidden style="margin-top:12px">
+        <div class="control"><label for="customW">Width (pixels)</label><input id="customW" type="number" min="64" max="800" step="1" value="480"></div>
+        <div class="control"><label for="customH">Height (pixels)</label><input id="customH" type="number" min="64" max="800" step="1" value="320"></div>
+      </div>
+      <h2 style="margin-top:22px">03 / Image options</h2>
+      <div class="controls">
+        <div class="control"><label for="fit">Fit to display</label><select id="fit"><option value="contain">Contain (black borders)</option><option value="cover">Cover (crop to fill)</option><option value="stretch">Stretch to fill</option></select></div>
+        <div class="control"><label for="rotate">Rotate image</label><select id="rotate"><option value="0">0° · Normal</option><option value="90">90° clockwise</option><option value="180">180°</option><option value="270">270° clockwise</option></select></div>
+        <div class="control"><label for="speed">Animation speed</label><select id="speed"><option value="0.5">0.5× · Slow motion</option><option value="1" selected>1× · Original speed</option><option value="1.5">1.5× · Faster</option><option value="2">2× · Double speed</option></select><div class="helper">Frames sampled at the player's fixed 10 FPS.</div></div>
+        <div class="control"><label for="threshold">Black level · <output id="thresholdNum">0</output></label><input id="threshold" type="range" min="0" max="75" value="0" step="5"><div class="helper">Remove faint background glow.</div></div>
+        <div class="control full"><label>Flip axes</label><div class="toggles"><label class="check"><input type="checkbox" id="flipH"> Mirror horizontally</label><label class="check"><input type="checkbox" id="flipV"> Flip vertically</label></div><div class="helper">Useful if your Pepper's Ghost reflection reverses the image.</div></div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>04 / Converted preview</h2>
+      <div class="previewwrap"><div class="previewLabel" id="previewLabel">CYD SCREEN · 320 × 240</div><canvas id="preview" width="320" height="240" aria-label="Converted video preview"></canvas></div>
+      <div class="barline"><span id="frameText">No preview available</span><span id="sizeText">Output —</span></div>
+      <div class="actions"><button class="primary" id="convert" disabled>Convert GIF</button><button class="secondary" id="download" disabled>Download .rgbv</button></div>
+      <div class="actions" style="margin-top:9px"><button class="secondary" id="play" disabled>Pause preview</button><button class="secondary" id="downloadRGB" disabled>Download .rgb</button></div>
+      <div id="status" aria-live="polite">Select a GIF to begin.</div><progress id="progress" max="100" value="0"></progress>
+      <div class="note"><b>Made for your ESP32 video player:</b> Outputs sequential, headerless RGB565 frames, each exactly <b id="frameBytes">153,600 bytes</b>, in little-endian byte order. Copy the resulting file to your microSD card's root directory. Both <b>.rgb</b> and <b>.rgbv</b> contain identical raw data.<br><br><b>Important:</b> Changing the image options requires reconversion. Raw files contain no resolution or frame-rate header: the ESP32 firmware must support the selected dimensions and 10 FPS. Your original 320 × 240 firmware will need updating before it can play 480 × 320 files.</div>
+    </section>
+  </div>
+  <div class="foot">Local browser conversion · No CDN · No dependencies · Your GIF stays on your device.</div>
+</div>
+<script>
+'use strict';
+let W=320,H=240,FRAME_BYTES=W*H*2;
+const FPS=10,MAX_BYTES=220*1024*1024,MAX_SOURCE_PIXELS=8_000_000;
+const $=id=>document.getElementById(id);
+const ui={drop:$('drop'),file:$('file'),src:$('srcMeta'),dur:$('durMeta'),fit:$('fit'),rotate:$('rotate'),speed:$('speed'),threshold:$('threshold'),thresholdNum:$('thresholdNum'),flipH:$('flipH'),flipV:$('flipV'),convert:$('convert'),download:$('download'),downloadRGB:$('downloadRGB'),play:$('play'),status:$('status'),progress:$('progress'),preview:$('preview'),frameText:$('frameText'),sizeText:$('sizeText'),resolution:$('resolution'),customSize:$('customSize'),customW:$('customW'),customH:$('customH'),outMeta:$('outMeta'),frameBytes:$('frameBytes'),previewLabel:$('previewLabel')};
+const previewCtx=ui.preview.getContext('2d',{willReadFrequently:true});
+let gif=null,filename='hologram',output=null,outputCount=0,playing=false,playStart=0,playOffset=0,lastPreview=-1,decoding=false;
+function setStatus(msg,isError=false){ui.status.textContent=msg;ui.status.classList.toggle('error',isError)}
+function humanBytes(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':(n/1024).toFixed(1)+' KB'}
+function readGif(buffer){
+  const bytes=new Uint8Array(buffer);let p=0;
+  function u8(){if(p>=bytes.length)throw Error('Unexpected end of GIF.');return bytes[p++];}
+  function u16(){return u8()|(u8()<<8)}
+  function read(n){if(p+n>bytes.length)throw Error('Truncated GIF data.');let a=bytes.subarray(p,p+n);p+=n;return a;}
+  function palette(size){let src=read(size*3);return new Uint8Array(src);}
+  function subBlocks(){let chunks=[],len=0;while(true){let n=u8();if(!n)break;let b=read(n);chunks.push(b);len+=n;}let a=new Uint8Array(len),pos=0;for(let c of chunks){a.set(c,pos);pos+=c.length}return a;}
+  let signature=String.fromCharCode(...read(6));if(signature!=='GIF89a'&&signature!=='GIF87a')throw Error('Not a valid GIF file.');
+  const width=u16(),height=u16(),screenPacked=u8();u8();u8();
+  if(width<1||height<1||width*height>MAX_SOURCE_PIXELS)throw Error('GIF dimensions are too large for safe browser decoding.');
+  let globalPalette=(screenPacked&128)?palette(2**((screenPacked&7)+1)):null;
+  const frames=[];let delay=100,dispose=0,transparent=-1,loops=1;
+  while(p<bytes.length){
+    const marker=u8();if(marker===0x3B)break;
+    if(marker===0x21){
+      let label=u8();
+      if(label===0xF9){
+        let size=u8();if(size!==4)throw Error('Malformed GIF graphics control.');
+        let flags=u8(),d=u16(),index=u8();u8();
+        dispose=(flags>>2)&7;transparent=(flags&1)?index:-1;delay=d?Math.max(20,d*10):100;
+      }else if(label===0xFF){
+        const app=read(u8());let data=subBlocks();let name=String.fromCharCode(...app);
+        if((name.startsWith('NETSCAPE')||name.startsWith('ANIMEXTS'))&&data.length>=3&&data[0]===1){loops=data[1]|(data[2]<<8);}
+      }else{subBlocks()}
+    }else if(marker===0x2C){
+      const x=u16(),y=u16(),w=u16(),h=u16(),packed=u8();
+      if(!w||!h||x+w>width||y+h>height)throw Error('GIF frame extends beyond its canvas.');
+      let pal=(packed&0x80)?palette(2**((packed&7)+1)):globalPalette;
+      if(!pal)throw Error('GIF has no usable color palette.');
+      let minCode=u8();if(minCode<2||minCode>8)throw Error('Unsupported GIF LZW code size.');
+      let compressed=subBlocks();
+      frames.push({x,y,w,h,pal,minCode,compressed,interlaced:!!(packed&0x40),delay,dispose,transparent});
+      delay=100;dispose=0;transparent=-1;
+      if(frames.length>5000)throw Error('GIF has too many source frames (limit 5,000).');
+    }else throw Error('Malformed GIF: unexpected block at byte '+(p-1));
+  }
+  if(!frames.length)throw Error('This GIF contains no image frames.');
+  let duration=frames.reduce((s,f)=>s+f.delay,0);
+  return {width,height,frames,duration,loops};
+}
+function lzwDecode(frame){
+  const {w,h,minCode,compressed}=frame;const pixelCount=w*h;
+  const output=new Uint8Array(pixelCount),prefix=new Uint16Array(4096),suffix=new Uint8Array(4096),stack=new Uint8Array(4097);
+  const clear=1<<minCode,end=clear+1;let size=minCode+1,next=end+1,old=-1,first=0,bitPos=0,pos=0;
+  function code(){if(bitPos+size>compressed.length*8)return -1;let byte=bitPos>>3,shift=bitPos&7;let val=(compressed[byte]||0)|((compressed[byte+1]||0)<<8)|((compressed[byte+2]||0)<<16);bitPos+=size;return (val>>shift)&((1<<size)-1);}
+  for(let i=0;i<clear;i++){suffix[i]=i;}
+  while(pos<pixelCount){
+    let c=code();if(c<0||c===end)break;
+    if(c===clear){size=minCode+1;next=end+1;old=-1;continue;}
+    if(c>next||c>=4096)throw Error('Invalid LZW code in GIF frame.');
+    if(old<0){if(c>=clear)throw Error('Invalid initial LZW code.');output[pos++]=c;first=c;old=c;continue;}
+    let input=c,top=0;
+    if(c===next){stack[top++]=first;c=old;}
+    let iter=0;
+    while(c>=clear){
+      if(c>=next||++iter>4096)throw Error('Invalid LZW dictionary.');
+      stack[top++]=suffix[c];c=prefix[c];
+    }
+    first=c;stack[top++]=first;
+    while(top&&pos<pixelCount)output[pos++]=stack[--top];
+    if(next<4096){prefix[next]=old;suffix[next]=first;next++;if(next===(1<<size)&&size<12)size++;}
+    old=input;
+  }
+  if(pos!==pixelCount)throw Error('GIF frame decoded incompletely: '+pos+'/'+pixelCount+' pixels.');
+  return output;
+}
+function makeCompositor(g){
+  const data=new Uint8ClampedArray(g.width*g.height*4),rowStride=g.width*4;
+  let previous=null;
+  function clearRect(f){for(let yy=f.y;yy<f.y+f.h;yy++)data.fill(0,yy*rowStride+f.x*4,yy*rowStride+(f.x+f.w)*4)}
+  function next(i){
+    if(previous){if(previous.dispose===2)clearRect(previous);else if(previous.dispose===3&&previous.snapshot)data.set(previous.snapshot);}
+    let f=g.frames[i],snapshot=f.dispose===3?data.slice():null;
+    const indices=lzwDecode(f),pal=f.pal;
+    let scanRow=0,passes=f.interlaced?[{s:0,step:8},{s:4,step:8},{s:2,step:4},{s:1,step:2}]:[{s:0,step:1}];
+    for(let pass of passes){for(let yy=pass.s;yy<f.h;yy+=pass.step){let row=(f.y+yy)*rowStride+f.x*4;for(let xx=0;xx<f.w;xx++){let ix=indices[scanRow*f.w+xx];if(ix===f.transparent)continue;let c=ix*3,o=row+xx*4;if(c+2<pal.length){data[o]=pal[c];data[o+1]=pal[c+1];data[o+2]=pal[c+2];data[o+3]=255;}}scanRow++;}}
+    previous={x:f.x,y:f.y,w:f.w,h:f.h,dispose:f.dispose,snapshot};
+    return data;
+  }
+  return {next};
+}
+function renderScaled(data,g,srcCanvas,srcCtx,targetCanvas,targetCtx,settings){
+  srcCtx.putImageData(new ImageData(data,g.width,g.height),0,0);
+  targetCtx.setTransform(1,0,0,1,0,0);targetCtx.fillStyle='#000';targetCtx.fillRect(0,0,W,H);
+  let angle=settings.rotate*Math.PI/180,sw=g.width,sh=g.height;
+  let turned=settings.rotate%180!==0,rw=turned?sh:sw,rh=turned?sw:sh;
+  let sx,sy;
+  if(settings.fit==='stretch'){sx=W/rw;sy=H/rh}else{let s=settings.fit==='cover'?Math.max(W/rw,H/rh):Math.min(W/rw,H/rh);sx=sy=s;}
+  targetCtx.translate(W/2,H/2);targetCtx.scale((settings.flipH?-1:1)*sx,(settings.flipV?-1:1)*sy);targetCtx.rotate(angle);
+  targetCtx.imageSmoothingEnabled=true;targetCtx.imageSmoothingQuality='high';
+  targetCtx.drawImage(srcCanvas,-sw/2,-sh/2);
+  targetCtx.setTransform(1,0,0,1,0,0);
+  return targetCtx.getImageData(0,0,W,H).data;
+}
+function options(){return {fit:ui.fit.value,rotate:Number(ui.rotate.value),speed:Number(ui.speed.value),threshold:Number(ui.threshold.value),flipH:ui.flipH.checked,flipV:ui.flipV.checked};}
+function firstFramePreview(){
+  if(!gif)return;
+  const g=gif, compositor=makeCompositor(g),pixels=compositor.next(0);
+  const src=document.createElement('canvas');src.width=g.width;src.height=g.height;
+  const temp=document.createElement('canvas');temp.width=W;temp.height=H;
+  const rgba=renderScaled(pixels,g,src,src.getContext('2d'),temp,temp.getContext('2d',{willReadFrequently:true}),options());
+  previewCtx.putImageData(new ImageData(new Uint8ClampedArray(rgba),W,H),0,0);
+  ui.frameText.textContent='First GIF frame · pre-conversion';
+}
+function updateResolution(){
+  const custom=ui.resolution.value==='custom';
+  ui.customSize.hidden=!custom;
+  const values=custom?[Number(ui.customW.value),Number(ui.customH.value)]:ui.resolution.value.split('x').map(Number);
+  const [newW,newH]=values;
+  invalidate();
+  if(!Number.isInteger(newW)||!Number.isInteger(newH)||newW<64||newH<64||newW>800||newH>800){
+    ui.convert.disabled=true;
+    ui.outMeta.textContent='Invalid size';
+    setStatus('Width and height must be whole numbers between 64 and 800 pixels.',true);
+    return;
+  }
+  W=newW;H=newH;FRAME_BYTES=W*H*2;
+  ui.preview.width=W;ui.preview.height=H;
+  previewImage=new ImageData(W,H);
+  previewCtx.fillStyle='#000';previewCtx.fillRect(0,0,W,H);
+  ui.previewLabel.textContent=`CYD SCREEN · ${W} × ${H}`;
+  ui.outMeta.textContent=`${W} × ${H} RGB565 LE`;
+  ui.frameBytes.textContent=FRAME_BYTES.toLocaleString('en-US')+' bytes';
+  ui.convert.disabled=!gif;
+  try{firstFramePreview()}catch(e){setStatus('Preview failed: '+e.message,true)}
+}
+function invalidate(){output=null;outputCount=0;ui.download.disabled=ui.downloadRGB.disabled=ui.play.disabled=true;playing=false;lastPreview=-1;ui.progress.value=0;ui.frameText.textContent='Convert to preview your adjusted animation';ui.sizeText.textContent='Output —';if(gif)setStatus('Settings changed. Press Convert GIF to regenerate.');}
+async function loadGIF(file){
+  if(!file)return;
+  if(decoding)return;
+  gif=null;invalidate();ui.convert.disabled=true;setStatus('Reading and validating GIF…');
+  try{
+    if(file.size>80*1024*1024)throw Error('GIF source is larger than 80 MB.');
+    const buffer=await file.arrayBuffer(),g=readGif(buffer);
+    gif=g;filename=(file.name||'hologram').replace(/\.gif$/i,'').replace(/[^a-z0-9_\-]+/gi,'_').slice(0,70)||'hologram';
+    ui.src.textContent=`${g.width} × ${g.height} · ${g.frames.length} frame${g.frames.length===1?'':'s'}`;
+    ui.dur.textContent=`${(g.duration/1000).toFixed(2)} seconds`;
+    ui.convert.disabled=false;
+    setStatus('Ready. Choose options and press Convert GIF.');
+    // Display the first decoded frame as a helpful preview before conversion.
+    firstFramePreview();
+  }catch(e){ui.src.textContent='No GIF selected';ui.dur.textContent='—';setStatus('Could not open GIF: '+e.message,true)}
+}
+async function convert(){
+  if(!gif||decoding)return;
+  decoding=true;ui.convert.disabled=true;ui.file.disabled=true;invalidate();
+  const g=gif,opt=options();
+  try{
+    const step=1000/FPS;
+    const frames=Math.max(2,Math.ceil(g.duration/(step*opt.speed)));
+    const total=frames*FRAME_BYTES;
+    if(total>MAX_BYTES)throw Error(`Converted video would be ${humanBytes(total)}; limit is ${humanBytes(MAX_BYTES)}. Use a shorter GIF or faster speed.`);
+    const bytes=new Uint8Array(total),src=document.createElement('canvas'),target=document.createElement('canvas');
+    src.width=g.width;src.height=g.height;target.width=W;target.height=H;
+    const srcCtx=src.getContext('2d'),targetCtx=target.getContext('2d',{willReadFrequently:true});
+    const compositor=makeCompositor(g);
+    const frameEnds=[];let t=0;for(let f of g.frames){t+=f.delay;frameEnds.push(t)}
+    let sourceIndex=0,rgba=compositor.next(0),threshold=opt.threshold;
+    for(let i=0;i<frames;i++){
+      const sample=Math.min(g.duration-0.01,(i+0.5)*step*opt.speed);
+      while(sourceIndex<g.frames.length-1&&sample>=frameEnds[sourceIndex]){sourceIndex++;rgba=compositor.next(sourceIndex)}
+      const image=renderScaled(rgba,g,src,srcCtx,target,targetCtx,opt);
+      let o=i*FRAME_BYTES;
+      for(let j=0;j<image.length;j+=4){
+        let r=image[j],gg=image[j+1],b=image[j+2];
+        if(Math.max(r,gg,b)<=threshold){r=gg=b=0;}
+        let pixel=((r>>3)<<11)|((gg>>2)<<5)|(b>>3);
+        bytes[o++]=pixel&255;bytes[o++]=pixel>>8;
+      }
+      if(i%8===0||i===frames-1){ui.progress.value=Math.round((i+1)/frames*100);setStatus(`Converting frame ${i+1} / ${frames}…`);await new Promise(resolve=>setTimeout(resolve,0));}
+    }
+    output=bytes;outputCount=frames;ui.download.disabled=ui.downloadRGB.disabled=ui.play.disabled=false;
+    ui.frameText.textContent=`${frames} frames · ${(frames/FPS).toFixed(1)} sec · ${FPS} FPS`;
+    ui.sizeText.textContent=`Output ${humanBytes(total)}`;
+    setStatus('Conversion complete. Preview is playing; download the .rgbv file.');
+    playing=true;playOffset=0;playStart=performance.now();lastPreview=-1;ui.play.textContent='Pause preview';
+    drawPreviewFrame(0);
+  }catch(e){setStatus('Conversion failed: '+e.message,true);output=null;}
+  finally{decoding=false;ui.convert.disabled=!gif;ui.file.disabled=false;}
+}
+let previewImage=new ImageData(W,H);
+function drawPreviewFrame(n){
+  if(!output)return;
+  const data=previewImage.data;let k=n*FRAME_BYTES;
+  for(let j=0;j<data.length;j+=4){const pixel=output[k]|(output[k+1]<<8);k+=2;data[j]=Math.round(((pixel>>11)&31)*255/31);data[j+1]=Math.round(((pixel>>5)&63)*255/63);data[j+2]=Math.round((pixel&31)*255/31);data[j+3]=255;}
+  previewCtx.putImageData(previewImage,0,0);lastPreview=n;
+}
+function animate(now){if(output&&playing){const frame=Math.floor((now-playStart)/100)%outputCount;if(frame!==lastPreview)drawPreviewFrame(frame);}requestAnimationFrame(animate)}
+function download(extension){if(!output)return;const blob=new Blob([output],{type:'application/octet-stream'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename+(W===320&&H===240?'':`_${W}x${H}`)+'.'+extension;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000)}
+ui.drop.addEventListener('click',()=>ui.file.click());ui.drop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();ui.file.click()}});
+for(let ev of ['dragenter','dragover'])ui.drop.addEventListener(ev,e=>{e.preventDefault();ui.drop.classList.add('drag')});
+for(let ev of ['dragleave','drop'])ui.drop.addEventListener(ev,e=>{e.preventDefault();ui.drop.classList.remove('drag')});
+ui.drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadGIF(f)});
+ui.file.addEventListener('change',e=>loadGIF(e.target.files[0]));
+ui.convert.addEventListener('click',convert);ui.download.addEventListener('click',()=>download('rgbv'));ui.downloadRGB.addEventListener('click',()=>download('rgb'));
+ui.play.addEventListener('click',()=>{if(!output)return;if(playing){playing=false;playOffset=performance.now()-playStart;ui.play.textContent='Play preview';}else{playing=true;playStart=performance.now()-playOffset;ui.play.textContent='Pause preview';}});
+for(let key of ['fit','rotate','speed','threshold','flipH','flipV']){ui[key].addEventListener('change',invalidate)}
+ui.resolution.addEventListener('change',updateResolution);
+for(const key of ['customW','customH'])ui[key].addEventListener('input',updateResolution);
+ui.threshold.addEventListener('input',()=>ui.thresholdNum.textContent=ui.threshold.value);
+updateResolution();requestAnimationFrame(animate);
+</script>
+</body>
+</html>
