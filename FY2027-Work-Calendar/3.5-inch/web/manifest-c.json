@@ -1,0 +1,6 @@
+{
+  "name": "FY2027 Work Calendar (3.5 CYD C, capacitive touch)",
+  "version": "0.1.0",
+  "new_install_prompt_erase": true,
+  "builds": [{"chipFamily": "ESP32", "parts": [{"path": "firmware/cyd35c-merged.bin", "offset": 0}]}]
+}

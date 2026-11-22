@@ -1,0 +1,62 @@
+name: Build FY2027 CYD Calendars
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'FY2027-Work-Calendar/**'
+      - '.github/workflows/fy2027-cyd-calendars.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO and esptool
+        run: pip install platformio esptool==4.8.1
+      - name: Build original 3.2-inch CYD
+        working-directory: FY2027-Work-Calendar/3.2-inch
+        run: pio run -e cyd32
+      - name: Build 3.5-inch resistive and capacitive CYDs
+        working-directory: FY2027-Work-Calendar/3.5-inch
+        run: pio run -e cyd35r -e cyd35c
+      - name: Merge images for browser flashing
+        shell: bash
+        run: |
+          set -euo pipefail
+          PART="$HOME/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"
+          ROOT="FY2027-Work-Calendar"
+          OUT="browser-flash"
+          for cfg in "3.2-inch:cyd32" "3.5-inch:cyd35r" "3.5-inch:cyd35c"; do
+            folder="${cfg%%:*}"
+            target="${cfg##*:}"
+            src="$ROOT/$folder"
+            mkdir -p "$OUT/$folder/firmware"
+            esptool.py --chip esp32 merge_bin \
+              -o "$OUT/$folder/firmware/${target}-merged.bin" \
+              --flash_mode dio --flash_freq 40m --flash_size 4MB \
+              0x1000 "$src/.pio/build/$target/bootloader.bin" \
+              0x8000 "$src/.pio/build/$target/partitions.bin" \
+              0xe000 "$PART" \
+              0x10000 "$src/.pio/build/$target/firmware.bin"
+          done
+          cp "$ROOT/3.2-inch/web/install.html" "$OUT/3.2-inch/index.html"
+          cp "$ROOT/3.2-inch/web/manifest.json" "$OUT/3.2-inch/manifest.json"
+          cp "$ROOT/3.2-inch/web/preview.html" "$OUT/3.2-inch/preview.html"
+          cp "$ROOT/3.5-inch/web/install.html" "$OUT/3.5-inch/index.html"
+          cp "$ROOT/3.5-inch/web/manifest-r.json" "$OUT/3.5-inch/manifest-r.json"
+          cp "$ROOT/3.5-inch/web/manifest-c.json" "$OUT/3.5-inch/manifest-c.json"
+          cp "$ROOT/3.5-inch/web/preview.html" "$OUT/3.5-inch/preview.html"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FY2027-CYD-Calendars-Browser-Flasher
+          path: browser-flash/
+          if-no-files-found: error
+          retention-days: 30

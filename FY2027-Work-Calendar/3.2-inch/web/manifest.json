@@ -1,0 +1,15 @@
+{
+  "name": "FY2027 Work Calendar - QD3223 3.2 CYD",
+  "version": "0.1.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "firmware/cyd32-merged.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}
