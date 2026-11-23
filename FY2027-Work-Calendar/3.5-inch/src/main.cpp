@@ -14,7 +14,7 @@ CYD35Display tft;
 static uint16_t BLUE, RED, NAVY, PALE, INK, BORDER, WHITE, GREY;
 constexpr int DISPLAY_W = 480, DISPLAY_H = 320;
 constexpr int MAX_EVENTS = 500;
-constexpr int NOTE_MAX = 96;
+constexpr int CAL_NOTE_LIMIT = 96;
 constexpr uint32_t STORAGE_MAGIC = 0x43414C32UL; // "CAL2"
 constexpr uint16_t STORAGE_VERSION = 1;
 constexpr uint32_t HOLD_MS = 650;
@@ -22,7 +22,7 @@ constexpr uint32_t HOLD_MS = 650;
 struct CalendarEntry {
   int32_t day;                 // days since 1970-01-01
   uint8_t color;               // 0=none, 1=blue, 2=red
-  char note[NOTE_MAX + 1];     // ASCII, nul-terminated
+  char note[CAL_NOTE_LIMIT + 1];     // ASCII, nul-terminated
 };
 struct FileHeader { uint32_t magic; uint16_t version; uint16_t count; };
 static CalendarEntry entries[MAX_EVENTS];
@@ -110,7 +110,7 @@ static void loadFile() {
   if (valid) {
     const size_t bytes = head.count * sizeof(CalendarEntry);
     valid = f.readBytes(reinterpret_cast<char*>(entries), bytes) == bytes;
-    if (valid) { entryCount = head.count; for(int i=0;i<entryCount;++i) entries[i].note[NOTE_MAX]=0; }
+    if (valid) { entryCount = head.count; for(int i=0;i<entryCount;++i) entries[i].note[CAL_NOTE_LIMIT]=0; }
   }
   if (!valid) { entryCount = 0; saveOK = false; }
   f.close();
@@ -127,7 +127,7 @@ static void setEntry(int32_t day, uint8_t color, const String &note) {
   }
   entries[idx].day = day;
   entries[idx].color = color;
-  size_t n = min((size_t)NOTE_MAX, (size_t)note.length());
+  size_t n = min((size_t)CAL_NOTE_LIMIT, (size_t)note.length());
   memcpy(entries[idx].note, note.c_str(), n);
   entries[idx].note[n] = '\0';
   saveOK = storeFile();
@@ -227,7 +227,7 @@ static void drawEditor() {
   tft.setFont(&fonts::Font2); tft.setTextColor(INK); tft.setTextDatum(top_left);
   if(!draft.length()) {tft.setTextColor(0x8410);tft.drawString("TYPE NOTE USING KEYBOARD...",17,67);}
   else {
-    // Three printable lines of 45 characters, or up to NOTE_MAX in total.
+    // Three printable lines of 45 characters, or up to CAL_NOTE_LIMIT in total.
     for(int line=0;line<3;++line) {
       const int begin=line*45;
       if(begin >= (int)draft.length()) break;
@@ -235,7 +235,7 @@ static void drawEditor() {
     }
   }
   drawKeyboard();
-  char counter[20]; snprintf(counter,sizeof(counter),"%u/%d",(unsigned)draft.length(),NOTE_MAX);
+  char counter[20]; snprintf(counter,sizeof(counter),"%u/%d",(unsigned)draft.length(),CAL_NOTE_LIMIT);
   centered(counter,418,309,NAVY);
 }
 static void navigatePeriod(int n) {
@@ -246,7 +246,7 @@ static void navigatePeriod(int n) {
 }
 static void handleKeyboard(int x,int y) {
   if(inside(x,y,5,250,76,48)) { numberKeys=!numberKeys;drawEditor();return; }
-  if(inside(x,y,88,250,240,48)) { if(draft.length()<NOTE_MAX)draft+=' ';drawEditor();return; }
+  if(inside(x,y,88,250,240,48)) { if(draft.length()<CAL_NOTE_LIMIT)draft+=' ';drawEditor();return; }
   if(inside(x,y,335,250,140,48)) { if(draft.length())draft.remove(draft.length()-1);drawEditor();return; }
   static const char *letters[]={"QWERTYUIOP","ASDFGHJKL","ZXCVBNM"};
   static const char *symbols[]={"1234567890","-/. :&#(),","?!+=%$@_;"};
@@ -255,7 +255,7 @@ static void handleKeyboard(int x,int y) {
     int count=keys.length(), gap=(row==0?3:row==1?3:5), width=(row==0?44:row==1?47:47);
     int start=(480 - (count*width+(count-1)*gap))/2;
     for(int c=0;c<count;++c) if(inside(x,y,start+c*(width+gap),119+row*43,width,37)) {
-      if(draft.length()<NOTE_MAX) draft+=(char)keys[c];
+      if(draft.length()<CAL_NOTE_LIMIT) draft+=(char)keys[c];
       drawEditor(); return;
     }
   }
