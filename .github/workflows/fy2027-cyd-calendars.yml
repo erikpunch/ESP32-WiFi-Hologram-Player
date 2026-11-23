@@ -8,7 +8,7 @@ on:
       - '.github/workflows/fy2027-cyd-calendars.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   firmware:
@@ -60,3 +60,21 @@ jobs:
           path: browser-flash/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish merged firmware to HTTPS installer paths
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="FY2027-Work-Calendar"
+          mkdir -p "$ROOT/3.2-inch/web/firmware" "$ROOT/3.5-inch/web/firmware"
+          cp browser-flash/3.2-inch/firmware/cyd32-merged.bin "$ROOT/3.2-inch/web/firmware/"
+          cp browser-flash/3.5-inch/firmware/cyd35r-merged.bin "$ROOT/3.5-inch/web/firmware/"
+          cp browser-flash/3.5-inch/firmware/cyd35c-merged.bin "$ROOT/3.5-inch/web/firmware/"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$ROOT/3.2-inch/web/firmware" "$ROOT/3.5-inch/web/firmware"
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish CYD firmware for browser flashing [skip ci]"
+            git push origin HEAD:main
+          fi
